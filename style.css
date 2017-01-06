@@ -1,13 +1,11 @@
 body {
     font-family: "Open Sans", sans-serif;
     color: #615445;
+    margin: 32px;
 }
 
 h1 {
-    font-family: Lora, serif;
-    font-weight: 400;
-    font-size: 32px;
-    color: #cc0000;
+    font-size: 30px;
 }
 
 h2 {
@@ -18,10 +16,77 @@ h3 {
     font-size: 16px;
 }
 
-table, div {
-    padding: 2px 32px;
+input{
+    font-family: inherit;
+    text-align: left;
+    border-color: #615445;
+    width: 200px;
 }
 
-table, .nested-div {
+a {
+    padding: 2px;
+}
+
+td {
+    padding: 4px 8px;
+}
+
+#header {
+    font-family: Lora, serif;
+    font-weight: 400;
+    font-size: 48px;
+    color: #cc0000;
+    margin: 0px;
+}
+
+.label {
+    font-size: 20px;
+}
+
+.nested {
+    margin: 0px 2px;
+    padding: 2px 30px;
     border-left: 4px #e6dfd6 solid;
 }
+
+a, .table-button {
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.table-button {
+    border-radius: 4px;
+    background: #615445;
+}
+
+.button, .button-interactive, input {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.button, .button-interactive {
+    text-align: center;
+}
+
+.button-interactive {
+    width: 16px;
+}
+
+.button-interactive:hover {
+    background: #6e5f4e;
+}
+
+.button-interactive:active {
+    background: #8c8072;
+}
+
+.fa-refresh {
+    -webkit-animation:spin 0.5s linear infinite;
+    -moz-animation:spin 0.5s linear infinite;
+    animation:spin 0.5s linear infinite;
+}
+
+@-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
+@-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
+@keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }

@@ -1,6 +1,18 @@
 var BASE_URL = "https://new.dineoncampus.com/v1/location/menu.json?platform=0";
-var MONTH_NAMES = [ "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December" ];
+var MONTH_NAMES = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+];
 var locations = {
     "Stwest": {
         "location_id": "586d05e4ee596f6e6c04b528",
@@ -15,8 +27,9 @@ var locations = {
         "site_id": "5751fd2b90975b60e048929a"
     }
 };
-var requestsLoading = 0;
 
+var requestsLoading = 0;
+var working = false;
 var menuCache = {};
 
 /**
@@ -31,9 +44,9 @@ var menuCache = {};
 function buildUrl(targetLocation, dateString) {
     var url = BASE_URL + "&date=" + dateString;
 
-    for (var targetLocation in locations)
-        if (targetLocation == targetLocation)
-            for (key in locations[targetLocation])
+    for (var _location in locations)
+        if (_location == targetLocation)
+            for (var key in locations[targetLocation])
                 url += "&" + key + "=" + locations[targetLocation][key];
 
     return url
@@ -77,22 +90,23 @@ function buildMenu(menuObject, headerText, searchQuery) {
     var container = document.createElement("div");
     var dateResults = 0;
 
-    var header = document.createElement("h1");
-    header.innerHTML = headerText
-    container.appendChild(header);
-
     if (menuObject) {
+        var header = document.createElement("h1");
+        header.innerHTML = headerText
+        container.appendChild(header);
+
         if (searchQuery) {
             var queryInfo = document.createElement("p");
             queryInfo.innerHTML = "Showing results for \"" + searchQuery + "\"";
             container.appendChild(queryInfo);
         }
+
         for (var a = 0; a < menuObject.periods.length; a++) {
             var period = menuObject.periods[a];
             var periodResults = 0;
 
             var periodContainer = document.createElement("div");
-            periodContainer.setAttribute("class", "nested-div");
+            periodContainer.setAttribute("class", "nested");
 
             var periodHeader = document.createElement("h2");
             periodHeader.innerHTML = period.name;
@@ -103,13 +117,14 @@ function buildMenu(menuObject, headerText, searchQuery) {
                 var categoryResults = 0;
 
                 var categoryContainer = document.createElement("div");
-                categoryContainer.setAttribute("class", "nested-div");
+                categoryContainer.setAttribute("class", "nested");
 
                 var categoryHeader = document.createElement("h3");
                 categoryHeader.innerHTML = category.name;
                 categoryContainer.appendChild(categoryHeader);
 
                 var itemContainer = document.createElement("table");
+                itemContainer.setAttribute("class", "nested");
                 categoryContainer.appendChild(itemContainer);
 
                 for (var c = 0; c < category.items.length; c++) {
@@ -146,17 +161,19 @@ function buildMenu(menuObject, headerText, searchQuery) {
             if (periodResults > 0)
                 container.appendChild(periodContainer);
         }
+
         if (dateResults == 0) {
-            var notification = document.createElement("h2");
-            if (searchQuery)
-                notification.innerHTML = "No results for \"" + searchQuery
-                                         + "\":(";
-            else
-                notification.innerHTML = "Nothing found :(";
-            periodContainer.innerHTML = "";
-            periodContainer.appendChild(notification);
-            container.appendChild(periodContainer);
+            container.removeChild(queryInfo);
+
+            var header = document.createElement("h3");
+            header.innerHTML = "No results for \"" + searchQuery + "\" :(";
+            container.appendChild(header);
         }
+
+    } else {
+        var header = document.createElement("h3");
+        header.innerHTML = headerText
+        container.appendChild(header);
     }
 
     return container;
@@ -187,48 +204,58 @@ function loadMenu(targetLocation, dateObject, callback) {
     var dateString = year + "-" + month + "-" + day;
     var url = buildUrl(targetLocation, dateString);
 
-    console.log("retrieving " + url);
-    requestsLoading++
-    $.getJSON(buildUrl(targetLocation, dateString), function(data){
-        var menuAvailable = false
+    // Sanity checks:
+    // Assists with readability later by ensuring that callback is always a
+    // valid function instead of checking if it exists whenever it's called
+    if (!callback)
+        callback = function() {
+            true;
+        }
+    // Creates a new cache item for the current location if it does not exist
+    if (!menuCache[targetLocation])
+        menuCache[targetLocation] = {};
 
-        if (!menuCache[targetLocation])
-            menuCache[targetLocation] = {};
-
-        if (typeof(menuCache[targetLocation][dateString]) == "undefined") {
+    // If nothing has been cached for the current date, request a menu.json
+    if (typeof(menuCache[targetLocation][dateString]) == "undefined") {
+        console.log("retrieving " + url);
+        requestsLoading++
+        $.getJSON(buildUrl(targetLocation, dateString), function(data){
             if (data.menu) {
                 menuCache[targetLocation][dateString] = data.menu;
                 console.log("cached " + targetLocation + " menu for "
                             + dateString);
-                menuAvailable = true;
+                callback(data.menu, "Menu for " + targetLocation + " on "
+                                    + dateStringReadable,
+                         dateObject.getTime());
             } else {
                 menuCache[targetLocation][dateString] = false;
-                console.log("could not retrieve " + targetLocation + " menu for"
-                            + dateString);
-            }
-        } else if (menuCache[targetLocation][dateString]) {
-            console.log("loaded " + targetLocation + " menu for " + dateString
-                        + " from cache");
-            menuAvailable = true
-        } else
-            console.log("cache indicated that " + targetLocation + " menu for "
-                        + dateString + " could not be retrieved previously");
-
-        if (menuAvailable)
-            if (callback)
-                callback(data.menu, "Menu for " + targetLocation + " on "
-                                    + dateStringReadable, dateObject.getTime());
-        else
-            if (callback)
+                console.log("could not retrieve " + targetLocation + " menu "
+                            + " for " + dateString);
                 callback(false, "No menu available for " + targetLocation
-                                + " on " + dateStringReadable,
+                                 + " on " + dateStringReadable,
                          dateObject.getTime());
-        requestsLoading--
-    });
+            }
+            requestsLoading--
+        });
+    // Otherwise, attempt to load from the cache
+    } else if (menuCache[targetLocation][dateString]) {
+        console.log("loaded " + targetLocation + " menu for " + dateString
+                    + " from cache");
+        callback(menuCache[targetLocation][dateString], "Menu for "
+                     + targetLocation + " on " + dateStringReadable,
+                 dateObject.getTime());
+    } else {
+        console.log("cache indicated that " + targetLocation + " menu for "
+                    + dateString + " could not be retrieved previously");
+        callback(false, "No menu available for " + targetLocation
+                         + " on " + dateStringReadable, dateObject.getTime());
+    }
 }
 
 /**
- * A wrapper for buildMenu. For documentation, see buildMenu.
+ * A wrapper for buildMenu. For documentation, see buildMenu. Essentially
+ * deprecated by displayMenuMultiple, as an array of a single date can be
+ * supplied to the dates parameter.
  */
 function displayMenu(menuObject, headerText, searchQuery) {
     main = document.getElementById("main");
@@ -244,7 +271,21 @@ function displayMenu(menuObject, headerText, searchQuery) {
  * @param {String} searchQuery An optional string used to filter results.
  */
 function displayMenuMultiple(targetLocation, dates, searchQuery) {
-    main = document.getElementById("main");
+    if (working)
+        return
+    working = true;
+
+    var main = document.getElementById("main");
+    main.innerHTML = "";
+
+    var notificationContainer = document.createElement("div");
+    var notification = document.createElement("h3");
+    notification.innerHTML = "working...";
+    notificationContainer.appendChild(notification);
+    main.appendChild(notificationContainer);
+
+    var button = document.getElementById("query-button");
+    button.setAttribute("class", "fa fa-refresh");
 
     // A multidimensional array where:
     //     i[0] is the Unix time of a menu's date
@@ -252,44 +293,37 @@ function displayMenuMultiple(targetLocation, dates, searchQuery) {
     // This is useful for sorting the dates later.
     var divs = [];
 
+    // Create divs for all dates for the specified location
     for (var i = 0; i < dates.length; i++) {
         var dateObject = dates[i]
-        loadMenu(targetLocation, dateObject, function(menuObject, headerText, time) {
+        loadMenu(targetLocation, dateObject, function(menuObject, headerText,
+                                                      time) {
             divs.push([time, buildMenu(menuObject, headerText, searchQuery)]);
         });
     }
 
+    // Wait for the divs to be created before sorting and displaying them
     waitForRequests(function() {
-        main.innerHTML = "";
-        // Display dates in chronological order
+        main.innerHTML = "<br>";
+
         divs.sort(function(a, b) {
             return a[0] - b[0];
         });
         for (var i = 0; i < divs.length; i++){
             main.appendChild(divs[i][1]);
         }
+
+        working = false;
+        button.setAttribute("class", "fa fa-arrow-right");
+        window.setTimeout(function() {
+            main.scrollIntoView({"behavior": "smooth"})
+        }, 200);
+
     }, 1000, function(requests) {
         var requestsWord = "requests";
         if (requests == 1)
             requestsWord = "request";
-        main.innerHTML = "Waiting for " + requests + " " + requestsWord + " to "
-                         + "finish...";
+        notification.innerHTML = "Waiting for " + requests + " " + requestsWord
+                                 + " to finish...";
     })
 }
-
-document.getElementById("main").innerHTML = "loading...";
-//loadMenu("Stwest", new Date(), displayMenu);
-/*
-loadMenu("Stwest", new Date(2017, 1, 9), function(menuObject, headerText) {
-    displayMenu(menuObject, headerText, "pizza");
-});
-*/
-
-dates =  [
-    new Date(2017, 1, 9),
-    new Date(2017, 1, 10),
-    new Date(2017, 1, 11),
-    new Date(2018, 1, 11)
-]
-
-displayMenuMultiple("Stwest", dates);
