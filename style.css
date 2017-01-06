@@ -1,7 +1,27 @@
 body {
-    font-family: sans-serif;
+    font-family: "Open Sans", sans-serif;
+    color: #615445;
 }
 
-div {
-    padding: 2px 16px;
+h1 {
+    font-family: Lora, serif;
+    font-weight: 400;
+    font-size: 32px;
+    color: #cc0000;
+}
+
+h2 {
+    font-size: 24px;
+}
+
+h3 {
+    font-size: 16px;
+}
+
+table, div {
+    padding: 2px 32px;
+}
+
+table, .nested-div {
+    border-left: 4px #e6dfd6 solid;
 }
