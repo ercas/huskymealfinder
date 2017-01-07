@@ -348,8 +348,7 @@ function displayFoodDetail(targetLocation, dates, foodName) {
                             dateResults++;
 
                             var resultRow = document.createElement("tr");
-                            resultRow.innerHTML = dateString + ": "
-                                                  + category.name + " - "
+                            resultRow.innerHTML = category.name + " - "
                                                   + period.name;
                             resultsTable.appendChild(resultRow);
                         }
