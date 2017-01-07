@@ -57,32 +57,39 @@ a, .table-button {
     color: #ffffff;
     text-decoration: none;
 }
-
 .table-button {
     border-radius: 4px;
     background: #615445;
 }
-
 .button, .button-interactive, input {
     display: inline-block;
     border-radius: 4px;
     padding: 4px;
 }
-
 .button, .button-interactive {
     text-align: center;
 }
-
 .button-interactive {
     width: 16px;
 }
-
 .button-interactive:hover {
     background: #6e5f4e;
 }
-
 .button-interactive:active {
     background: #8c8072;
+}
+
+.progress-bg, .progress-fg {
+    height: 24px;
+    border-radius: 4px;
+}
+.progress-bg {
+    margin: 0px 16px;
+    width: 400px;
+    background: #c0bcb8;
+}
+.progress-fg {
+    background: #cc0000;
 }
 
 .fa-refresh {
@@ -90,7 +97,6 @@ a, .table-button {
     -moz-animation:spin 0.5s linear infinite;
     animation:spin 0.5s linear infinite;
 }
-
 @-moz-keyframes spin { 100% { -moz-transform: rotate(360deg); } }
 @-webkit-keyframes spin { 100% { -webkit-transform: rotate(360deg); } }
 @keyframes spin { 100% { -webkit-transform: rotate(360deg); transform:rotate(360deg); } }

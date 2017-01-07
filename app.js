@@ -27,10 +27,11 @@ var locations = {
         "site_id": "5751fd2b90975b60e048929a"
     }
 };
+var JSON_REQUEST_TIMEOUT = 15000
 
-var requestsLoading = 0;
-var working = false;
-var menuCache = {};
+var requestsLoading = []; // Stores the URLs of in-progress requests
+var working = false; // Indicates if the page is currently being modified
+var menuCache = {}; // Stores the results of past requests for menu JSONs
 
 /**
  * Builds a URL from an index of the locations table and a date string.
@@ -65,11 +66,11 @@ function waitForRequests(callback, timeout, waitingCallback) {
     if (!timeout)
         timeout = 1000;
     window.setTimeout(function() {
-        if (requestsLoading > 0) {
-            console.log("waiting for " + requestsLoading + " requests to "
+        if (requestsLoading.length > 0) {
+            console.log("waiting for " + requestsLoading.length + " requests to "
                         + "finish...");
             if (waitingCallback)
-                waitingCallback(requestsLoading);
+                waitingCallback(requestsLoading.length);
             waitForRequests(callback, timeout, waitingCallback);
         } else
             callback();
@@ -218,24 +219,42 @@ function loadMenu(targetLocation, dateObject, callback) {
     // If nothing has been cached for the current date, request a menu.json
     if (typeof(menuCache[targetLocation][dateString]) == "undefined") {
         console.log("retrieving " + url);
-        requestsLoading++
+        requestsLoading.push(url);
+
+        // If the request returns nothing, add nothing to the cache, allowing
+        // for future requests to retry
+        window.setTimeout(function() {
+            requestsLoading.pop(url);
+            console.log("request for " + targetLocation + " menu "
+                        + " for " + dateString + " timed out");
+            callback(false, "Menu request for " + targetLocation + " on "
+                            + dateStringReadable + " timed out",
+                     dateObject.getTime());
+        }, JSON_REQUEST_TIMEOUT);
+
+        // If the request succeeds, set a value in the cache
         $.getJSON(buildUrl(targetLocation, dateString), function(data){
-            if (data.menu) {
-                menuCache[targetLocation][dateString] = data.menu;
-                console.log("cached " + targetLocation + " menu for "
-                            + dateString);
-                callback(data.menu, "Menu for " + targetLocation + " on "
-                                    + dateStringReadable,
-                         dateObject.getTime());
-            } else {
-                menuCache[targetLocation][dateString] = false;
-                console.log("could not retrieve " + targetLocation + " menu "
-                            + " for " + dateString);
-                callback(false, "No menu available for " + targetLocation
-                                 + " on " + dateStringReadable,
-                         dateObject.getTime());
+
+            // Make sure the request hasn't yet timed out
+            if (requestsLoading.indexOf(url) != -1) {
+                if (data.menu) {
+                    menuCache[targetLocation][dateString] = data.menu;
+                    console.log("cached " + targetLocation + " menu for "
+                                + dateString);
+                    callback(data.menu, "Menu for " + targetLocation + " on "
+                                        + dateStringReadable,
+                             dateObject.getTime());
+                } else {
+                    menuCache[targetLocation][dateString] = false;
+                    console.log("could not retrieve " + targetLocation + " menu "
+                                + " for " + dateString);
+                    callback(false, "No menu available for " + targetLocation
+                                     + " on " + dateStringReadable,
+                             dateObject.getTime());
+                }
+                requestsLoading.pop(url);
             }
-            requestsLoading--
+
         });
     // Otherwise, attempt to load from the cache
     } else if (menuCache[targetLocation][dateString]) {
@@ -283,6 +302,14 @@ function displayMenuMultiple(targetLocation, dates, searchQuery) {
     notification.innerHTML = "working...";
     notificationContainer.appendChild(notification);
     main.appendChild(notificationContainer);
+    var requestsTotal = dates.length;
+    var progressBg = document.createElement("div");
+    progressBg.setAttribute("class", "progress-bg");
+    var progressFg = document.createElement("div");
+    progressFg.setAttribute("class", "progress-fg");
+    progressFg.setAttribute("style", "width: 1%;");
+    progressBg.appendChild(progressFg);
+    main.appendChild(progressBg);
 
     var button = document.getElementById("query-button");
     button.setAttribute("class", "fa fa-refresh");
@@ -291,14 +318,15 @@ function displayMenuMultiple(targetLocation, dates, searchQuery) {
     //     i[0] is the Unix time of a menu's date
     //     i[1] is the generated div of that menu
     // This is useful for sorting the dates later.
-    var divs = [];
+    var menuDivs = [];
 
     // Create divs for all dates for the specified location
     for (var i = 0; i < dates.length; i++) {
         var dateObject = dates[i]
         loadMenu(targetLocation, dateObject, function(menuObject, headerText,
                                                       time) {
-            divs.push([time, buildMenu(menuObject, headerText, searchQuery)]);
+            menuDivs.push([time, buildMenu(menuObject, headerText,
+                                           searchQuery)]);
         });
     }
 
@@ -306,24 +334,31 @@ function displayMenuMultiple(targetLocation, dates, searchQuery) {
     waitForRequests(function() {
         main.innerHTML = "<br>";
 
-        divs.sort(function(a, b) {
+        // Display the menus in chronological order
+        menuDivs.sort(function(a, b) {
             return a[0] - b[0];
         });
-        for (var i = 0; i < divs.length; i++){
-            main.appendChild(divs[i][1]);
+        for (var i = 0; i < menuDivs.length; i++){
+            main.appendChild(menuDivs[i][1]);
         }
 
+        // Indicate that the menu displaying is done and scroll down to them
         working = false;
         button.setAttribute("class", "fa fa-arrow-right");
         window.setTimeout(function() {
             main.scrollIntoView({"behavior": "smooth"})
         }, 200);
 
-    }, 1000, function(requests) {
+    }, 1000, function(requestsLeft) {
+
         var requestsWord = "requests";
-        if (requests == 1)
+        if (requestsLeft == 1)
             requestsWord = "request";
-        notification.innerHTML = "Waiting for " + requests + " " + requestsWord
-                                 + " to finish...";
+        notification.innerHTML = "Waiting for " + requestsLeft + " "
+                                 + requestsWord + " to finish...";
+
+        progressFg.setAttribute("style", "width: "
+            + ((requestsTotal - requestsLeft) / requestsTotal * 100) + "%");
+
     })
 }
