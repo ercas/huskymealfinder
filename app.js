@@ -438,6 +438,7 @@ function displayMenuMultiple(targetLocation, dates, searchQuery) {
             console.log(foodItems);
             for (var b = 0; b < foodItems.length; b++) {
                 (function(foodName) {
+                    foodItems[b].setAttribute("class", "underline");
                     foodItems[b].onclick = function() {
                         displayFoodDetail(targetLocation, dates, foodName);
                     }
