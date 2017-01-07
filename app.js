@@ -65,9 +65,10 @@ function buildUrl(targetLocation, dateString) {
  */
 function formatDate(dateObject, style) {
     var year = dateObject.getFullYear();
-    var month = (dateObject.getMonth() + 1);
+    var month = dateObject.getMonth();
     var day = dateObject.getDate();
     if (!style || style == "ymd") {
+        month = month + 1;
         if (month < 10)
             month = "0" + month;
         if (day < 10)
