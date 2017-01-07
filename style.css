@@ -24,6 +24,8 @@ input{
 }
 
 a {
+    text-decoration: none;
+    color: inherit;
     padding: 2px;
 }
 
@@ -53,9 +55,8 @@ td {
     border-left: 4px #e6dfd6 solid;
 }
 
-a, .table-button {
+.button-interactive, .table-button {
     color: #ffffff;
-    text-decoration: none;
 }
 .table-button {
     border-radius: 4px;

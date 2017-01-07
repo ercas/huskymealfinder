@@ -8,19 +8,16 @@ var startDate = new Date;
 var endDate = new Date;
 
 // Initializations
+
 for (key in locations)
     numLocations++;
-endDate.setDate(startDate.getDate() + 5);
+
+endDate.setDate(startDate.getDate() + 3);
 
 // Utility
 
 function diffBetweenDays(date1, date2) {
     return Math.ceil((date2.getTime() - date1.getTime()) / MS_IN_DAY);
-}
-
-function dateToString(_date) {
-    var monthName = MONTH_NAMES[_date.getMonth()];
-    return _date.getDate() + " " + monthName + " " + _date.getFullYear();
 }
 
 function interpolateDates(date1, date2) {
@@ -40,7 +37,7 @@ function interpolateDates(date1, date2) {
     return results
 }
 
-// Gui buttons
+// Gui functions
 
 function updateGui() {
     var i = 0;
@@ -52,8 +49,8 @@ function updateGui() {
             i++;
     }
     document.getElementById("location").innerHTML = locationName;
-    document.getElementById("date-from").innerHTML = dateToString(startDate);
-    document.getElementById("date-to").innerHTML = dateToString(endDate);
+    document.getElementById("date-from").innerHTML = formatDate(startDate, "h");
+    document.getElementById("date-to").innerHTML = formatDate(endDate, "h");
 }
 
 function locationNext() {
