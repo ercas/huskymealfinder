@@ -30,6 +30,8 @@ var locations = {
 var JSON_REQUEST_TIMEOUT = 15000
 var SCROLL_DELAY = 200;
 
+var NOTIFICATION_SERVER_BASE_URL = "http://localhost:8000/register?food_name="
+
 var requestsLoading = []; // Stores the URLs of in-progress requests
 var working = false; // Indicates if the page is currently being modified
 var menuCache = {}; // Stores the results of past requests for menu JSONs
@@ -103,6 +105,33 @@ function waitForRequests(callback, timeout, waitingCallback) {
 }
 
 /**
+ * Connect a show/hide function to a button and a div
+ * @param {HTMLElement} button An element that, when clicked, triggers the div
+ *     to be shown/hidden
+ * @param {HTMLDivElement} div The div that is shown/hidden when the button is
+ *     pressed
+ */
+function connectShowHide(button, div) {
+    var visible = false;
+    var buttonText = button.innerHTML
+
+    button.setAttribute("class", "pointer");
+    button.onclick = function() {
+        visible = ! visible;
+        if (visible) {
+            button.innerHTML = '<span class="fa fa-minus-square-o"></span> '
+                               + buttonText;
+            div.removeAttribute("style");
+        } else {
+            button.innerHTML = '<span class="fa fa-plus-square-o"></span> '
+                               + buttonText;
+            div.setAttribute("style", "display: none;");
+        }
+    }
+    button.click();
+}
+
+/**
  * Operates on an instance of MyClass and returns an array of items.
  * @param {Object} menuObject An object of a dineoncampus.com menu.json file.
  * @param {String} headerText Text that will be displayed as the menu's header.
@@ -127,23 +156,28 @@ function buildMenu(menuObject, headerText, searchQuery) {
             container.appendChild(queryInfo);
         }
 
+        var periodContainer = document.createElement("div");
+        periodContainer.setAttribute("class", "nested");
+
+        connectShowHide(header, periodContainer);
+
         for (var a = 0; a < menuObject.periods.length; a++) {
             var period = menuObject.periods[a];
             var periodResults = 0;
-
-            var periodContainer = document.createElement("div");
-            periodContainer.setAttribute("class", "nested");
 
             var periodHeader = document.createElement("h2");
             periodHeader.innerHTML = period.name;
             periodContainer.appendChild(periodHeader);
 
+            var categoryContainer = document.createElement("div");
+            categoryContainer.setAttribute("class", "nested");
+
+            connectShowHide(periodHeader, categoryContainer);
+
             for (var b = 0; b < period.categories.length; b++) {
                 var category = period.categories[b];
                 var categoryResults = 0;
 
-                var categoryContainer = document.createElement("div");
-                categoryContainer.setAttribute("class", "nested");
 
                 var categoryHeader = document.createElement("h3");
                 categoryHeader.innerHTML = category.name;
@@ -153,11 +187,14 @@ function buildMenu(menuObject, headerText, searchQuery) {
                 itemContainer.setAttribute("class", "nested");
                 categoryContainer.appendChild(itemContainer);
 
+                connectShowHide(categoryHeader, itemContainer);
+
                 for (var c = 0; c < category.items.length; c++) {
                     item = category.items[c];
                     var itemRow = document.createElement("tr");
 
                     var itemLink = document.createElement("a");
+                    itemLink.setAttribute("class", "underline item-button");
                     itemLink.setAttribute("href", "#");
                     itemLink.innerHTML = item.name;
                     itemRow.appendChild(itemLink);
@@ -316,9 +353,6 @@ function displayFoodDetail(targetLocation, dates, foodName) {
     var header = document.createElement("h1");
     header.innerHTML = foodName + " in " + targetLocation;
     container.appendChild(header);
-    var info = document.createElement("h2");
-    info.innerHTML = "This item appears on: ";
-    container.appendChild(info);
 
     var totalResults = 0;
     var resultsContainer = document.createElement("div");
@@ -344,7 +378,8 @@ function displayFoodDetail(targetLocation, dates, foodName) {
                 for (var c = 0; c < period.categories.length; c++) {
                     var category = period.categories[c];
                     for (var d = 0; d < category.items.length; d++) {
-                        if (category.items[d].name == foodName) {
+                        if (category.items[d].name
+                            == foodName.replace("&amp;", "&")) {
                             totalResults++;
                             dateResults++;
 
@@ -362,9 +397,22 @@ function displayFoodDetail(targetLocation, dates, foodName) {
             resultsContainer.appendChild(dateContainer);
 
     }
-    if (totalResults > 0)
+    if (totalResults > 0) {
+        var link = document.createElement("a");
+        link.innerHTML = "Click here to get notifications for this item";
+        link.setAttribute("class", "underline");
+        link.setAttribute("href", NOTIFICATION_SERVER_BASE_URL
+                                  + foodName.replace(new RegExp(" ", "g"),
+                                                     "_").replace("&amp;",
+                                                                  "%AND"));
+        container.appendChild(link);
+
+        var info = document.createElement("h2");
+        info.innerHTML = "This item appears on: ";
+        container.appendChild(info);
+
         container.appendChild(resultsContainer);
-    else {
+    } else {
         var notification = document.createElement("h3");
         notification.innerHTML = "Something went wrong :(";
         container.appendChild(notification);
@@ -435,11 +483,9 @@ function displayMenuMultiple(targetLocation, dates, searchQuery) {
         });
         for (var a = 0; a < menuDivs.length; a++) {
             // Connect to the food buttons
-            var foodItems = menuDivs[a][1].getElementsByTagName("a");
-            console.log(foodItems);
+            var foodItems = menuDivs[a][1].getElementsByClassName("item-button");
             for (var b = 0; b < foodItems.length; b++) {
                 (function(foodName) {
-                    foodItems[b].setAttribute("class", "underline");
                     foodItems[b].onclick = function() {
                         displayFoodDetail(targetLocation, dates, foodName);
                     }

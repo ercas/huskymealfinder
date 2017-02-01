@@ -34,7 +34,7 @@ td {
 }
 
 #header {
-    font-family: Lora, serif;
+    font-family: "Libre Baskerville", serif;
     font-weight: 400;
     font-size: 48px;
     color: #cc0000;
@@ -95,6 +95,10 @@ td {
 
 .underline {
     text-decoration: underline;
+}
+
+.pointer {
+    cursor: pointer;
 }
 
 .fa-refresh {
